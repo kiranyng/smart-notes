@@ -470,24 +470,6 @@ const DailyPlan = () => {
         <button
           onClick={handleSavePlan}
           disabled={loading || !user} // Disable if loading or no user
-          className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg flex items-center shadow hover:shadow-md transition-all ${
-            (loading || !user) ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg flex items-center shadow hover:shadow-md transition-all ${loading || !user ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {loading && !authLoading ? ( // Show save loading only if not auth loading
-            <>
-              <LucideLoader2 className="inline mr-2 h-5 w-5 animate-spin"/> Saving...
-            </>
-          ) : (
-            <>
-              <LucideSave className="inline mr-2 h-5 w-5"/> Save Plan
-            </>
-          )}
-        </button>
-        {!user && <p className="text-xs text-red-600 mt-1 text-center self-center ml-4">Login required to save.</p>} {/* Added login message */}
-      </div>
-    </div>
-  );
-};
-
-export default DailyPlan;
+          {loading && !authLoading ? ( // Show save

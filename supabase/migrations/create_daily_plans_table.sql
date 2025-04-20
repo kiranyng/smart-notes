@@ -1,3 +1,4 @@
+```sql
 /*
   # Create daily_plans table
 
@@ -71,3 +72,4 @@ CREATE OR REPLACE TRIGGER update_daily_plans_updated_at
 BEFORE UPDATE ON daily_plans
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
+```

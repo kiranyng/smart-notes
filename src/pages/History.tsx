@@ -220,7 +220,7 @@ const History = () => {
              background-color: white; /* Make dot visible on active background */
            }
         `}
-      </style>
+      </style> {/* Ensure the template literal is closed before the style tag */}
 
       {authLoading && (
         <div className="flex justify-center items-center p-6">
@@ -278,7 +278,7 @@ const History = () => {
                   {selectedPlan && (
                     <button
                       onClick={handleEditPlan}
-                      className="flex items-center bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      className="flex items-center bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all transform hover:scale-105"
                       title="Edit this plan"
                     >
                       <LucideEdit className="h-4 w-4 mr-2" />

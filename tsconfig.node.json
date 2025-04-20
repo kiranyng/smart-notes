@@ -6,7 +6,7 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext", // Changed from "bundler"
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
