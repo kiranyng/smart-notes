@@ -1,7 +1,7 @@
-import { useState, useEffect, ChangeEvent, FormEvent, KeyboardEvent } from 'react'; // Added KeyboardEvent
+import { useState, useEffect, ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import {
   LucideUploadCloud, LucideLoader2, LucideSave, LucideImageOff,
-  LucideAlertTriangle, LucidePlus, LucideTrash2, LucideCheckSquare, LucideSquare, LucideClock, LucideListTodo // Added icons
+  LucideAlertTriangle, LucidePlus, LucideTrash2, LucideCheckSquare, LucideSquare, LucideClock, LucideListTodo, LucidePlusCircle // Added LucidePlusCircle back for button
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,12 +26,9 @@ const safeJsonParse = <T,>(jsonString: string | null | undefined, defaultValue: 
   if (!jsonString) return defaultValue;
   try {
     const parsed = JSON.parse(jsonString);
-    // Basic check: Ensure it's an array for todos/schedule
     if (Array.isArray(parsed)) {
-       // Optional: Add deeper validation here if needed to ensure items have correct structure
        return parsed as T;
     }
-     // If not an array (or expected object structure), return default
     console.warn("Parsed JSON is not an array, returning default. String was:", jsonString);
     return defaultValue;
   } catch (e) {
@@ -110,18 +107,13 @@ const DailyPlan = () => {
 
       if (data) {
         setTodos(safeJsonParse<TodoItem[]>(data.todos, []));
-
-        // --- FIX: Defensive Sorting ---
         const parsedSchedule = safeJsonParse<ScheduleItem[]>(data.schedule, []);
         const sortedSchedule = parsedSchedule.sort((a, b) => {
-          // Provide default empty strings if time is missing or null/undefined
           const timeA = a?.time || '';
           const timeB = b?.time || '';
           return timeA.localeCompare(timeB);
         });
         setSchedule(sortedSchedule);
-        // --- END FIX ---
-
         setFormData({
           notes: data.notes || '', breakfast: data.breakfast || '', lunch: data.lunch || '',
           dinner: data.dinner || '', snacks: data.snacks || '', water_intake_glasses: data.water_intake_glasses || 0,
@@ -163,8 +155,8 @@ const DailyPlan = () => {
   // --- End Input Handlers ---
 
   // --- TODO Handlers ---
-  const handleAddTodo = (e?: FormEvent) => { // Make event optional for Enter key
-    e?.preventDefault(); // Prevent default only if event exists
+  const handleAddTodo = (e?: FormEvent | MouseEvent) => { // Accept MouseEvent for button click
+    e?.preventDefault();
     if (newTodoText.trim() === '' || !user) return;
     const newTodo: TodoItem = { id: uuidv4(), text: newTodoText.trim(), completed: false };
     setTodos(prevTodos => [...prevTodos, newTodo]);
@@ -177,8 +169,8 @@ const DailyPlan = () => {
 
   const handleTodoKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent form submission if inside a form
-      handleAddTodo(); // Call add handler without event
+      e.preventDefault();
+      handleAddTodo();
     }
   };
 
@@ -198,17 +190,17 @@ const DailyPlan = () => {
   // --- End TODO Handlers ---
 
   // --- Schedule Handlers ---
-  const handleAddScheduleItem = (e?: FormEvent) => { // Make event optional
+  const handleAddScheduleItem = (e?: FormEvent | MouseEvent) => { // Accept MouseEvent
      e?.preventDefault();
      if (newScheduleTime.trim() === '' || newScheduleDesc.trim() === '' || !user) return;
      const newItem: ScheduleItem = { id: uuidv4(), time: newScheduleTime.trim(), description: newScheduleDesc.trim() };
-     setSchedule(prevSchedule => [...prevSchedule, newItem].sort((a, b) => a.time.localeCompare(b.time)));
+     setSchedule(prevSchedule => [...prevSchedule, newItem].sort((a, b) => (a?.time || '').localeCompare(b?.time || '')));
      setNewScheduleTime('');
      setNewScheduleDesc('');
    };
 
    const handleScheduleDescKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-     if (e.key === 'Enter' && newScheduleTime.trim() !== '') { // Add only if time is also set
+     if (e.key === 'Enter' && newScheduleTime.trim() !== '') {
        e.preventDefault();
        handleAddScheduleItem();
      }
@@ -222,7 +214,8 @@ const DailyPlan = () => {
 
   // --- Gemini Analyze ---
   const handleUploadAndAnalyze = async () => {
-    if (isEditingPast) { setError("Cannot analyze images for past dates."); return; }
+    // ... (keep existing logic) ...
+     if (isEditingPast) { setError("Cannot analyze images for past dates."); return; }
     if (!user) { setError("Please log in to analyze images."); return; }
     if (!selectedImage) { setError("Please select an image first."); return; }
     setLoading(true); setError(null);
@@ -259,7 +252,7 @@ const DailyPlan = () => {
           }
 
           setTodos(Array.isArray(parsedData.todos) ? parsedData.todos.map((text: string) => ({ id: uuidv4(), text, completed: false })) : []);
-          setSchedule(Array.isArray(parsedData.schedule) ? parsedData.schedule.map((item: any) => ({ id: uuidv4(), time: item.time || '', description: item.description || '' })).sort((a: ScheduleItem, b: ScheduleItem) => a.time.localeCompare(b.time)) : []);
+          setSchedule(Array.isArray(parsedData.schedule) ? parsedData.schedule.map((item: any) => ({ id: uuidv4(), time: item.time || '', description: item.description || '' })).sort((a: ScheduleItem, b: ScheduleItem) => (a?.time || '').localeCompare(b?.time || '')) : []);
           setFormData(prev => ({
             ...prev,
             breakfast: parsedData.breakfast || '', lunch: parsedData.lunch || '', dinner: parsedData.dinner || '',
@@ -353,7 +346,7 @@ const DailyPlan = () => {
            <label htmlFor="image-upload" className="block text-gray-700 text-sm font-bold mb-2 cursor-pointer">Upload Planner Image (Optional)</label>
            <input id="image-upload" type="file" accept="image/*" onChange={handleImageChange} disabled={!user || loading || isEditingPast} className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 file:transition-colors disabled:opacity-50 disabled:cursor-not-allowed`} />
            {selectedImage && <p className="mt-2 text-sm text-gray-600">Selected: {selectedImage.name}</p>}
-           {error && error.includes("image") && <p className="mt-2 text-sm text-red-600">{error}</p>} {/* Show image specific errors here */}
+           {error && error.includes("image") && <p className="mt-2 text-sm text-red-600">{error}</p>}
            <button onClick={handleUploadAndAnalyze} disabled={!selectedImage || loading || !user || isEditingPast} className={`mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex justify-center items-center shadow hover:shadow-md transition-all transform hover:scale-[1.02] ${(!selectedImage || loading || !user || isEditingPast) ? 'opacity-50 cursor-not-allowed' : ''}`}>
              {loading && !authLoading ? (<><LucideLoader2 className="inline mr-2 h-5 w-5 animate-spin"/> Analyzing...</>) : (<><LucideUploadCloud className="inline mr-2 h-5 w-5"/> Upload & Analyze</>)}
            </button>
@@ -367,38 +360,39 @@ const DailyPlan = () => {
          </div>
        )}
 
-      {/* Display general errors (like save/load errors) */}
-      {error && !error.includes("image") && (
-         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center">
-           <LucideAlertTriangle className="h-5 w-5 mr-2" />
-           <span>{error}</span>
-         </div>
-       )}
+      {error && !error.includes("image") && ( <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center"> <LucideAlertTriangle className="h-5 w-5 mr-2" /> <span>{error}</span> </div> )}
 
       {/* Main Form Area */}
-      <div className="space-y-8 bg-white p-6 rounded-lg shadow-xl"> {/* More shadow */}
+      <div className="space-y-8 bg-white p-6 rounded-lg shadow-xl">
 
         {/* --- TODO Section --- */}
         <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-shadow hover:shadow-md">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-700 flex items-center"><LucideListTodo className="mr-2 h-5 w-5 text-blue-500"/> TODOs</h3>
-             {/* Add Todo Input */}
+             {/* Add Todo Input with Button */}
              <div className="flex gap-2 mt-3">
                <input
                  type="text"
                  value={newTodoText}
                  onChange={handleTodoInputChange}
-                 onKeyDown={handleTodoKeyDown} // Add on Enter key
-                 placeholder="Add a new task and press Enter..."
+                 onKeyDown={handleTodoKeyDown}
+                 placeholder="Add a new task..."
                  disabled={!user || loading}
                  className="flex-grow border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                />
-               {/* Optional: Keep add button or rely solely on Enter */}
-               {/* <button onClick={() => handleAddTodo()} disabled={!user || loading || newTodoText.trim() === ''} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-md disabled:opacity-50 flex items-center shrink-0 transition-transform transform hover:scale-105"> <LucidePlus size={18} /> </button> */}
+               <button
+                 type="button" // Prevent form submission if Enter is pressed on button
+                 onClick={handleAddTodo}
+                 disabled={!user || loading || newTodoText.trim() === ''}
+                 className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-md disabled:opacity-50 flex items-center justify-center shrink-0 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                 title="Add Task"
+               >
+                 <LucidePlus size={18} />
+               </button>
              </div>
           </div>
           {/* Todo List */}
-          <ul className="divide-y divide-gray-200 max-h-72 overflow-y-auto"> {/* Scrollable list */}
+          <ul className="divide-y divide-gray-200 max-h-72 overflow-y-auto">
             {todos.length === 0 && <li className="text-sm text-gray-500 italic p-4">No tasks added yet.</li>}
             {todos.map((todo) => (
               <li key={todo.id} className="flex items-center justify-between p-3 group hover:bg-gray-50 transition-colors">
@@ -411,7 +405,7 @@ const DailyPlan = () => {
                   </span>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteTodo(todo.id); }} // Prevent toggle on delete click
+                  onClick={(e) => { e.stopPropagation(); handleDeleteTodo(todo.id); }}
                   className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0 focus:outline-none p-1"
                   title="Delete task"
                 >
@@ -427,7 +421,7 @@ const DailyPlan = () => {
         <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-shadow hover:shadow-md">
            <div className="bg-gray-50 p-4 border-b border-gray-200">
              <h3 className="text-lg font-semibold text-gray-700 flex items-center"><LucideClock className="mr-2 h-5 w-5 text-indigo-500"/> Schedule</h3>
-             {/* Add Schedule Item Inputs */}
+             {/* Add Schedule Item Inputs with Button */}
              <div className="flex flex-col sm:flex-row gap-2 mt-3">
                <input
                  type="time"
@@ -441,18 +435,25 @@ const DailyPlan = () => {
                  type="text"
                  value={newScheduleDesc}
                  onChange={(e) => setNewScheduleDesc(e.target.value)}
-                 onKeyDown={handleScheduleDescKeyDown} // Add on Enter key
-                 placeholder="Schedule description (press Enter to add)..."
+                 onKeyDown={handleScheduleDescKeyDown}
+                 placeholder="Schedule description..."
                  disabled={!user || loading}
                  required
                  className="flex-grow border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                />
-                {/* Optional: Keep add button or rely solely on Enter */}
-               {/* <button onClick={() => handleAddScheduleItem()} disabled={!user || loading || newScheduleTime.trim() === '' || newScheduleDesc.trim() === ''} className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-md disabled:opacity-50 flex items-center justify-center sm:justify-start shrink-0 transition-transform transform hover:scale-105"> <LucidePlus size={18} /> </button> */}
+               <button
+                 type="button" // Prevent form submission
+                 onClick={handleAddScheduleItem}
+                 disabled={!user || loading || newScheduleTime.trim() === '' || newScheduleDesc.trim() === ''}
+                 className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-md disabled:opacity-50 flex items-center justify-center sm:justify-start shrink-0 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                 title="Add Schedule Item"
+               >
+                 <LucidePlus size={18} />
+               </button>
              </div>
            </div>
            {/* Schedule List */}
-           <ul className="divide-y divide-gray-200 max-h-72 overflow-y-auto"> {/* Scrollable list */}
+           <ul className="divide-y divide-gray-200 max-h-72 overflow-y-auto">
              {schedule.length === 0 && <li className="text-sm text-gray-500 italic p-4">No schedule items added yet.</li>}
              {schedule.map((item) => (
                <li key={item.id} className="flex items-center justify-between p-3 group hover:bg-gray-50 transition-colors">
@@ -474,7 +475,8 @@ const DailyPlan = () => {
         {/* --- End Schedule Section --- */}
 
         {/* --- Other Fields (Meals, Context, Notes, Summary) --- */}
-        {/* High-level note */}
+        {/* ... (Keep existing JSX for other fields) ... */}
+         {/* High-level note */}
         <div>
           <label htmlFor="high_level_note" className="block text-gray-700 text-sm font-bold mb-1">Summary / High-level Note</label>
           <textarea id="high_level_note" value={formData.high_level_note} onChange={handleInputChange} disabled={!user || loading} rows={3} className="w-full border border-gray-300 rounded-md p-2 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Summarize your day..."/>
@@ -516,7 +518,7 @@ const DailyPlan = () => {
             (loading || !user) ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? ( // Use combined loading state for button text
+          {loading ? (
             <><LucideLoader2 className="inline mr-2 h-5 w-5 animate-spin"/> Saving...</>
           ) : (
             <><LucideSave className="inline mr-2 h-5 w-5"/> Save Plan</>
